@@ -3,9 +3,10 @@
 set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-src="${repo_dir}/99-wifi-powersave-off.conf"
+src="${repo_dir}/zz-wifi-powersave-off.conf"
 dest_dir=/etc/NetworkManager/conf.d
-dest="${dest_dir}/99-wifi-powersave-off.conf"
+dest="${dest_dir}/zz-wifi-powersave-off.conf"
+legacy="${dest_dir}/99-wifi-powersave-off.conf"
 
 if [[ ${EUID} -ne 0 ]]; then
   printf 'error: run with sudo\n' >&2
@@ -18,6 +19,10 @@ if ! command -v nmcli >/dev/null 2>&1; then
 fi
 
 install -d -m 0755 -- "$dest_dir"
+if [[ -e ${legacy} ]] && grep -q 'Mandatory: disable Wi-Fi power save' "$legacy" 2>/dev/null; then
+  rm -f -- "$legacy"
+  printf 'Removed obsolete %s\n' "$legacy"
+fi
 if [[ -e ${dest} ]] && ! cmp -s -- "$src" "$dest"; then
   backup="${dest}.bak.$(date +%Y%m%d-%H%M%S)"
   cp -a -- "$dest" "$backup"

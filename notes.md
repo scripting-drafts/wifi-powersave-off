@@ -7,9 +7,9 @@
   `/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf`
   (`wifi.powersave = 3`). The active profile had `0 (default)`, so it
   inherited 3. The `iwlwifi` module parameter was already `N`.
-- `/etc/NetworkManager/conf.d` is read in order, later files overriding
-  earlier ones. `99-wifi-powersave-off.conf` therefore overrides
-  `default-wifi-powersave-on.conf`.
+- `/etc/NetworkManager/conf.d` is read in lexicographic order, later files
+  overriding earlier ones. A `99-` prefix sorts **before** `default-`, so
+  it lost. `zz-` sorts after and wins.
 - A profile with an explicit `802-11-wireless.powersave` value can still
   override the global default. Check with
   `nmcli -f 802-11-wireless.powersave connection show <name>`.
