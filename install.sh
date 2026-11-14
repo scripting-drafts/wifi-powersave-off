@@ -2,6 +2,13 @@
 # Install a mandatory NetworkManager drop-in that disables Wi-Fi power save.
 set -euo pipefail
 
+reconnect=0
+case ${1:-} in
+  --reconnect) reconnect=1 ;;
+  '') ;;
+  *) printf 'usage: %s [--reconnect]\n' "${0##*/}" >&2; exit 2 ;;
+esac
+
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 src="${repo_dir}/zz-wifi-powersave-off.conf"
 dest_dir=/etc/NetworkManager/conf.d
@@ -39,12 +46,29 @@ fi
 
 nmcli general reload >/dev/null 2>&1 || systemctl reload NetworkManager
 
-# Reactivate active Wi-Fi profiles so the new default applies now.
-printf 'Reapplying active Wi-Fi connection; the link may drop briefly.\n'
-while IFS=: read -r conn type; do
-  [[ ${type} == 802-11-wireless ]] || continue
-  nmcli connection up "$conn" >/dev/null
-done < <(nmcli -t -f NAME,TYPE connection show --active)
+apply_runtime() {
+  local state=$1 dev type
+  while IFS=: read -r dev type; do
+    [[ ${type} == wifi ]] || continue
+    if command -v iw >/dev/null 2>&1; then
+      iw dev "$dev" set power_save "$state" >/dev/null 2>&1 || true
+    fi
+    if command -v iwconfig >/dev/null 2>&1; then
+      iwconfig "$dev" power "$state" >/dev/null 2>&1 || true
+    fi
+  done < <(nmcli -t -f DEVICE,TYPE device status)
+}
+
+if (( reconnect )); then
+  printf 'Reapplying active Wi-Fi connection; the link may drop briefly.\n'
+  while IFS=: read -r conn type; do
+    [[ ${type} == 802-11-wireless ]] || continue
+    nmcli connection up "$conn" >/dev/null
+  done < <(nmcli -t -f NAME,TYPE connection show --active)
+else
+  apply_runtime off
+  printf 'Applied runtime power save off without reconnecting.\n'
+fi
 
 dev=$(nmcli -t -f DEVICE,TYPE device status | awk -F: '$2 == "wifi" { print $1; exit }')
 if [[ -n ${dev} ]] && command -v iwconfig >/dev/null 2>&1; then

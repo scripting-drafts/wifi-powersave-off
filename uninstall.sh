@@ -17,11 +17,19 @@ if [[ -e ${legacy} ]] && grep -q 'Mandatory: disable Wi-Fi power save' "$legacy"
 fi
 nmcli general reload >/dev/null 2>&1 || systemctl reload NetworkManager
 
-printf 'Reapplying active Wi-Fi connection; the link may drop briefly.\n'
-while IFS=: read -r conn type; do
-  [[ ${type} == 802-11-wireless ]] || continue
-  nmcli connection up "$conn" >/dev/null
-done < <(nmcli -t -f NAME,TYPE connection show --active)
+apply_runtime() {
+  local state=$1 dev type
+  while IFS=: read -r dev type; do
+    [[ ${type} == wifi ]] || continue
+    if command -v iw >/dev/null 2>&1; then
+      iw dev "$dev" set power_save "$state" >/dev/null 2>&1 || true
+    fi
+    if command -v iwconfig >/dev/null 2>&1; then
+      iwconfig "$dev" power "$state" >/dev/null 2>&1 || true
+    fi
+  done < <(nmcli -t -f DEVICE,TYPE device status)
+}
 
-printf 'Removed %s\n' "$dest"
+apply_runtime on
+printf 'Removed %s without reconnecting.\n' "$dest"
 printf 'Ubuntu default power-save policy is active again.\n'

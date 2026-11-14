@@ -1,15 +1,14 @@
 # Notes
 
-- Diagnosis: a Telegram call ended while the client process exited; there
-  was no coredump, OOM kill, suspend, or Wi-Fi link-down. Signal was
-  roughly -71 to -81 dBm on 5 GHz.
-- Effective power save came from NetworkManager's global default:
-  `/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf`
-  (`wifi.powersave = 3`). The active profile had `0 (default)`, so it
-  inherited 3. The `iwlwifi` module parameter was already `N`.
+- The Ubuntu file `default-wifi-powersave-on.conf` must stay unchanged at
+  `wifi.powersave = 3`; it is a package-owned default. The effective value
+  comes from `NetworkManager --print-config`.
 - `/etc/NetworkManager/conf.d` is read in lexicographic order, later files
-  overriding earlier ones. A `99-` prefix sorts **before** `default-`, so
-  it lost. `zz-` sorts after and wins.
+  overriding earlier ones. `zz-wifi-powersave-off.conf` sorts after
+  `default-wifi-powersave-on.conf` and sets `wifi.powersave=2`.
+- The installer applies runtime `power_save off` through `iw` or
+  `iwconfig` without reactivating the connection. Pass `--reconnect` only
+  when a full profile reapply is wanted.
 - A profile with an explicit `802-11-wireless.powersave` value can still
   override the global default. Check with
   `nmcli -f 802-11-wireless.powersave connection show <name>`.
