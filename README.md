@@ -1,10 +1,10 @@
 # Wi-Fi power save off (mandatory)
 
-Ubuntu enables Wi-Fi power save in
-`/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf`.
-This repo installs `zz-wifi-powersave-off.conf`, which sorts after it and
-sets `wifi.powersave = 2`.
+Ubuntu's `default-wifi-powersave-on.conf` sets `wifi.powersave = 3`.
+This repo's `zz-wifi-powersave-off.conf` sorts after it and sets `2`.
+NetworkManager merges both; the later `zz-` value wins.
+Install always reapplies the active Wi-Fi connection; the link drops briefly.
 
-Install: `sudo ./install.sh` (no reconnect)  
-Reapply link: `sudo ./install.sh --reconnect`  
-Verify: `iwconfig <wlan> | grep 'Power Management'`
+Install: `sudo ./install.sh`  
+Verify merged: `NetworkManager --print-config | grep wifi.powersave`  
+Verify runtime: `iwconfig <wlan> | grep 'Power Management'`
