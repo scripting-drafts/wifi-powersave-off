@@ -12,6 +12,7 @@ fi
 rm -f -- "$dest"
 nmcli general reload >/dev/null 2>&1 || systemctl reload NetworkManager
 
+printf 'Reapplying active Wi-Fi connection; the link may drop briefly.\n'
 while IFS=: read -r conn type; do
   [[ ${type} == 802-11-wireless ]] || continue
   nmcli connection up "$conn" >/dev/null
